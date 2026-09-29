@@ -8,8 +8,10 @@ from typing import Any
 
 from homeassistant.components.remote import (
     ATTR_DELAY_SECS,
+    ATTR_HOLD_SECS,
     ATTR_NUM_REPEATS,
     DEFAULT_DELAY_SECS,
+    DEFAULT_HOLD_SECS,
     DEFAULT_NUM_REPEATS,
     RemoteEntity,
 )
@@ -71,7 +73,9 @@ class VirtualRemoteEntity(RemoteEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        remote = self._store.get(self._remote_id)
+        remote = self._store.find(self._remote_id)
+        if remote is None:  # deleted; the entity is about to go too
+            return {"remote_id": self._remote_id, "commands": []}
         return {
             "remote_id": self._remote_id,
             "commands": [button["id"] for button in remote["buttons"]],
@@ -86,6 +90,8 @@ class VirtualRemoteEntity(RemoteEntity):
     async def async_send_command(self, command: Iterable[str], **kwargs: Any) -> None:
         num_repeats: int = kwargs.get(ATTR_NUM_REPEATS, DEFAULT_NUM_REPEATS)
         delay: float = kwargs.get(ATTR_DELAY_SECS, DEFAULT_DELAY_SECS)
+        # A held press (hold_secs > 0) runs the button's hold_action, if it has one.
+        hold = kwargs.get(ATTR_HOLD_SECS, DEFAULT_HOLD_SECS) > 0
         commands = list(command)
         # Resolve everything up front so a typo fails before anything is sent.
         buttons = [self._get_button(button_id) for button_id in commands]
@@ -94,7 +100,7 @@ class VirtualRemoteEntity(RemoteEntity):
             for index, button in enumerate(buttons):
                 if repeat or index:
                     await asyncio.sleep(delay)
-                await self._async_run_action(button)
+                await self._async_run_action(button, hold=hold)
 
     async def _async_press_first(self, candidates: tuple[str, ...]) -> None:
         for button_id in candidates:
@@ -120,8 +126,12 @@ class VirtualRemoteEntity(RemoteEntity):
             )
         return button
 
-    async def _async_run_action(self, button: dict[str, Any]) -> None:
+    async def _async_run_action(
+        self, button: dict[str, Any], *, hold: bool = False
+    ) -> None:
         action = button["tap_action"]
+        if hold and button["hold_action"]["action"] != "none":
+            action = button["hold_action"]
         if action["action"] == "none":
             return
         if action["action"] != "perform-action":

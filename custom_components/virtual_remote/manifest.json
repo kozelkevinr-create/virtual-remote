@@ -1,13 +1,13 @@
 {
   "domain": "virtual_remote",
   "name": "Virtual Remote",
-  "codeowners": [],
+  "codeowners": ["@kozelkevinr-create"],
   "config_flow": true,
   "dependencies": ["http", "frontend", "websocket_api", "lovelace"],
-  "documentation": "https://github.com/OWNER/virtual-remote",
+  "documentation": "https://github.com/kozelkevinr-create/virtual-remote",
   "integration_type": "helper",
   "iot_class": "local_push",
-  "issue_tracker": "https://github.com/OWNER/virtual-remote/issues",
+  "issue_tracker": "https://github.com/kozelkevinr-create/virtual-remote/issues",
   "requirements": [],
-  "version": "0.2.0"
+  "version": "0.3.0"
 }

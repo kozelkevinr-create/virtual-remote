@@ -52,5 +52,21 @@
     "invalid_remote": {
       "message": "The remote layout could not be saved: {error}"
     }
+  },
+  "services": {
+    "press": {
+      "name": "Press button",
+      "description": "Presses a button on a virtual remote, exactly as tapping it on the dashboard card would.",
+      "fields": {
+        "command": {
+          "name": "Command",
+          "description": "The button's command ID, for example vol_up."
+        },
+        "hold": {
+          "name": "Hold",
+          "description": "Run the button's hold action instead of its tap action, if it has one."
+        }
+      }
+    }
   }
 }

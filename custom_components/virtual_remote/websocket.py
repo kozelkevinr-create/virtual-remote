@@ -9,8 +9,9 @@ import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
-from .const import CARD_VERSION, CONF_REMOTE_ID, DOMAIN
+from .const import CARD_VERSION, CONF_REMOTE_ID, DOMAIN, signal_remote_updated
 from .store import DATA_STORE, RemoteStore
 
 
@@ -20,7 +21,14 @@ def _store(hass: HomeAssistant) -> RemoteStore:
 
 @callback
 def async_register_websocket(hass: HomeAssistant) -> None:
-    for handler in (ws_version, ws_list, ws_get, ws_save, ws_delete):
+    for handler in (
+        ws_version,
+        ws_list,
+        ws_get,
+        ws_subscribe,
+        ws_save,
+        ws_delete,
+    ):
         websocket_api.async_register_command(hass, handler)
 
 
@@ -52,6 +60,37 @@ def ws_get(
     hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
 ) -> None:
     connection.send_result(msg["id"], _store(hass).get(msg[CONF_REMOTE_ID]))
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): f"{DOMAIN}/subscribe",
+        vol.Required(CONF_REMOTE_ID): str,
+    }
+)
+@callback
+def ws_subscribe(
+    hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]
+) -> None:
+    """Push the remote now and on every change; `null` once it is deleted.
+
+    Lets every open card pick up an editor save without a page reload.
+    """
+    store = _store(hass)
+    remote_id = msg[CONF_REMOTE_ID]
+    remote = store.get(remote_id)
+
+    @callback
+    def forward() -> None:
+        connection.send_message(
+            websocket_api.event_message(msg["id"], {"remote": store.find(remote_id)})
+        )
+
+    connection.subscriptions[msg["id"]] = async_dispatcher_connect(
+        hass, signal_remote_updated(remote_id), forward
+    )
+    connection.send_result(msg["id"])
+    connection.send_message(websocket_api.event_message(msg["id"], {"remote": remote}))
 
 
 @websocket_api.websocket_command(

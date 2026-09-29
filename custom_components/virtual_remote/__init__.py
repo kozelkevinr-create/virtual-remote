@@ -10,6 +10,7 @@ from homeassistant.helpers.typing import ConfigType
 
 from .const import CONF_REMOTE_ID, DEFAULT_ICON, DOMAIN
 from .frontend import async_register_frontend
+from .services import async_register_services
 from .store import DATA_STORE, RemoteStore
 from .websocket import async_register_websocket
 
@@ -24,6 +25,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     await store.async_load()
     hass.data[DATA_STORE] = store
     async_register_websocket(hass)
+    async_register_services(hass)
     await async_register_frontend(hass)
     return True
 

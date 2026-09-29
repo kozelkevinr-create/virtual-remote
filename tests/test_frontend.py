@@ -25,9 +25,17 @@ def _card_resources(hass: HomeAssistant) -> list[dict]:
     ]
 
 
-def test_card_version_matches_manifest() -> None:
+def test_versions_agree() -> None:
+    """The card's cache-busting check relies on all three matching."""
     manifest = json.loads((INTEGRATION_DIR / "manifest.json").read_text())
-    assert manifest["version"] == CARD_VERSION
+    package = json.loads((INTEGRATION_DIR.parents[1] / "frontend" / "package.json").read_text())
+    assert manifest["version"] == package["version"] == CARD_VERSION
+
+
+def test_bundle_is_built_for_this_version() -> None:
+    """Catches a version bump committed without rebuilding the card."""
+    bundle = (INTEGRATION_DIR / "frontend" / "virtual-remote-card.js").read_text()
+    assert f'"{CARD_VERSION}"' in bundle
 
 
 async def test_card_is_served(hass: HomeAssistant, hass_client) -> None:

@@ -17,7 +17,7 @@ CONF_REMOTE_ID: Final = "remote_id"
 URL_BASE: Final = f"/{DOMAIN}"
 CARD_FILENAME: Final = "virtual-remote-card.js"
 CARD_URL: Final = f"{URL_BASE}/{CARD_FILENAME}"
-CARD_VERSION: Final = "0.2.0"
+CARD_VERSION: Final = "0.3.0"
 
 DEFAULT_ICON: Final = "mdi:remote"
 DEFAULT_COLUMNS: Final = 4

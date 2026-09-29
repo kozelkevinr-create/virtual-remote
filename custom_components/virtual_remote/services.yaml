@@ -1,0 +1,15 @@
+press:
+  target:
+    entity:
+      integration: virtual_remote
+      domain: remote
+  fields:
+    command:
+      required: true
+      example: vol_up
+      selector:
+        text:
+    hold:
+      default: false
+      selector:
+        boolean:

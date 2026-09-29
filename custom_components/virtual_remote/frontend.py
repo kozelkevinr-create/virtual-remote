@@ -38,7 +38,11 @@ async def async_register_frontend(hass: HomeAssistant) -> None:
 async def _async_register_resource(hass: HomeAssistant) -> None:
     """Add or update our resource entry. Storage-mode dashboards only."""
     lovelace: Any = hass.data.get("lovelace")
-    resources = getattr(lovelace, "resources", None)
+    # A dataclass on current HA; a plain dict before that.
+    if isinstance(lovelace, dict):
+        resources = lovelace.get("resources")
+    else:
+        resources = getattr(lovelace, "resources", None)
     if not isinstance(resources, ResourceStorageCollection):
         _LOGGER.info(
             "Lovelace resources are managed in YAML; add %s as a module resource",

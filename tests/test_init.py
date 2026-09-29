@@ -10,6 +10,7 @@ from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.exceptions import ServiceValidationError
 
 from custom_components.virtual_remote import DATA_STORE
+from custom_components.virtual_remote.const import DOMAIN
 from custom_components.virtual_remote.store import REMOTE_SCHEMA
 
 from pytest_homeassistant_custom_component.common import async_mock_service
@@ -97,6 +98,51 @@ async def test_send_command_calls_button_action(hass: HomeAssistant) -> None:
 
     assert len(calls) == 3
     assert calls[0].data["entity_id"] == "media_player.tv"
+
+
+async def test_held_press_runs_hold_action(hass: HomeAssistant) -> None:
+    await _create_remote(hass)
+    taps = async_mock_service(hass, "media_player", "media_play_pause")
+    holds = async_mock_service(hass, "media_player", "media_stop")
+    store = hass.data[DATA_STORE]
+    remote = store.get("living_room_tv")
+    remote["buttons"] = [
+        {
+            **_button("play", perform_action="media_player.media_play_pause"),
+            "hold_action": {
+                "action": "perform-action",
+                "perform_action": "media_player.media_stop",
+            },
+        },
+        _button("tap_only", perform_action="media_player.media_play_pause"),
+    ]
+    store.upsert(remote)
+
+    for command in ("play", "tap_only"):
+        await hass.services.async_call(
+            "remote",
+            "send_command",
+            {"entity_id": ENTITY_ID, "command": command, "hold_secs": 0.5},
+            blocking=True,
+        )
+
+    # A button without a hold action falls back to its tap action.
+    assert (len(holds), len(taps)) == (1, 1)
+
+
+async def test_press_action_is_an_alias(hass: HomeAssistant) -> None:
+    await _create_remote(hass)
+    calls = async_mock_service(hass, "media_player", "volume_up")
+    store = hass.data[DATA_STORE]
+    remote = store.get("living_room_tv")
+    remote["buttons"] = [_button("vol_up", perform_action="media_player.volume_up")]
+    store.upsert(remote)
+
+    await hass.services.async_call(
+        DOMAIN, "press", {"entity_id": ENTITY_ID, "command": "vol_up"}, blocking=True
+    )
+
+    assert len(calls) == 1
 
 
 async def test_send_command_unknown_button(hass: HomeAssistant) -> None:

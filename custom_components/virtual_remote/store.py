@@ -168,6 +168,10 @@ class RemoteStore:
         except KeyError:
             raise RemoteNotFoundError(remote_id) from None
 
+    def find(self, remote_id: str) -> dict[str, Any] | None:
+        remote = self._remotes.get(remote_id)
+        return None if remote is None else copy.deepcopy(remote)
+
     def get_button(self, remote_id: str, button_id: str) -> dict[str, Any] | None:
         remote = self._remotes.get(remote_id)
         if remote is None:
@@ -200,6 +204,7 @@ class RemoteStore:
     def delete(self, remote_id: str) -> None:
         if self._remotes.pop(remote_id, None) is not None:
             self._async_schedule_save()
+            async_dispatcher_send(self._hass, signal_remote_updated(remote_id))
 
 
 DATA_STORE: HassKey[RemoteStore] = HassKey(DOMAIN)

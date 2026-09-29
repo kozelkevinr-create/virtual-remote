@@ -81,7 +81,8 @@ async def test_save_rejects_invalid_layout(hass: HomeAssistant, hass_ws_client) 
         {
             "type": f"{DOMAIN}/save",
             "remote_id": REMOTE_ID,
-            "buttons": [button("a"), button("a")],
+            # Valid on their own; invalid only because the ids repeat.
+            "buttons": [{"id": "a", "position": {"x": 0, "y": 0}}] * 2,
         }
     )
     msg = await client.receive_json()
@@ -137,3 +138,37 @@ async def test_writes_require_admin(
     # Reads stay open to every user so non-admins can use the card.
     await client.send_json_auto_id({"type": f"{DOMAIN}/get", "remote_id": REMOTE_ID})
     assert (await client.receive_json())["success"]
+
+
+async def test_subscribe_pushes_changes_and_deletion(
+    hass: HomeAssistant, hass_ws_client
+) -> None:
+    await create_remote(hass)
+    client = await hass_ws_client(hass)
+
+    await client.send_json_auto_id({"type": f"{DOMAIN}/subscribe", "remote_id": REMOTE_ID})
+    sub_id = (await client.receive_json())["id"]
+    initial = await client.receive_json()
+    assert initial["id"] == sub_id
+    assert initial["event"]["remote"]["buttons"] == []
+
+    store = hass.data[DATA_STORE]
+    remote = store.get(REMOTE_ID)
+    remote["buttons"] = [{"id": "ok", "position": {"x": 0, "y": 0}}]
+    store.upsert(remote)
+    changed = await client.receive_json()
+    assert [b["id"] for b in changed["event"]["remote"]["buttons"]] == ["ok"]
+
+    store.delete(REMOTE_ID)
+    deleted = await client.receive_json()
+    assert deleted["event"] == {"remote": None}
+
+
+async def test_subscribe_unknown_remote(hass: HomeAssistant, hass_ws_client) -> None:
+    await create_remote(hass)
+    client = await hass_ws_client(hass)
+
+    await client.send_json_auto_id({"type": f"{DOMAIN}/subscribe", "remote_id": "nope"})
+    msg = await client.receive_json()
+
+    assert msg["error"]["translation_key"] == "unknown_remote"
