@@ -17,10 +17,17 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_ENTITY_ID
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import DATA_STORE
-from .const import CONF_REMOTE_ID, DOMAIN, POWER_OFF_COMMANDS, POWER_ON_COMMANDS
+from .const import (
+    CONF_REMOTE_ID,
+    DOMAIN,
+    POWER_OFF_COMMANDS,
+    POWER_ON_COMMANDS,
+    signal_remote_updated,
+)
 from .store import RemoteStore
 
 
@@ -51,6 +58,16 @@ class VirtualRemoteEntity(RemoteEntity):
         self._attr_unique_id = remote_id
         self._attr_name = remote["name"]
         self._attr_icon = remote["icon"]
+
+    async def async_added_to_hass(self) -> None:
+        # Keep the `commands` attribute current when the editor saves a layout.
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass,
+                signal_remote_updated(self._remote_id),
+                self.async_write_ha_state,
+            )
+        )
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

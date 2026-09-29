@@ -5,37 +5,16 @@ from __future__ import annotations
 import pytest
 import voluptuous as vol
 
-from homeassistant import config_entries
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.exceptions import ServiceValidationError
 
 from custom_components.virtual_remote import DATA_STORE
-from custom_components.virtual_remote.const import DOMAIN
 from custom_components.virtual_remote.store import REMOTE_SCHEMA
 
 from pytest_homeassistant_custom_component.common import async_mock_service
 
-ENTITY_ID = "remote.living_room_tv"
-
-
-async def _create_remote(hass: HomeAssistant, name: str = "Living Room TV"):
-    result = await hass.config_entries.flow.async_init(
-        DOMAIN, context={"source": config_entries.SOURCE_USER}
-    )
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {"name": name, "icon": "mdi:television"}
-    )
-    await hass.async_block_till_done()
-    return result
-
-
-def _button(button_id: str, **action) -> dict:
-    return {
-        "id": button_id,
-        "position": {"x": 0, "y": 0},
-        "tap_action": {"action": "perform-action", **action},
-    }
+from .common import ENTITY_ID, button as _button, create_remote as _create_remote
 
 
 async def test_flow_creates_empty_remote(hass: HomeAssistant) -> None:

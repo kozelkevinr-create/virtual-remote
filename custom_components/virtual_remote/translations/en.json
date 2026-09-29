@@ -45,6 +45,12 @@
     },
     "self_target": {
       "message": "Button {command} targets this same remote, which would loop forever."
+    },
+    "unknown_remote": {
+      "message": "There is no virtual remote with the ID {remote_id}."
+    },
+    "invalid_remote": {
+      "message": "The remote layout could not be saved: {error}"
     }
   }
 }

@@ -7,23 +7,24 @@ from homeassistant.const import CONF_ICON, CONF_NAME, Platform
 from homeassistant.core import HomeAssistant
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.typing import ConfigType
-from homeassistant.util.hass_dict import HassKey
 
 from .const import CONF_REMOTE_ID, DEFAULT_ICON, DOMAIN
-from .store import RemoteStore
+from .frontend import async_register_frontend
+from .store import DATA_STORE, RemoteStore
+from .websocket import async_register_websocket
 
 PLATFORMS: list[Platform] = [Platform.REMOTE]
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
-DATA_STORE: HassKey[RemoteStore] = HassKey(DOMAIN)
-
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Load the shared store once per HA process, before any entry sets up."""
+    """Once per HA process: load the store, serve the card, add the WS API."""
     store = RemoteStore(hass)
     await store.async_load()
     hass.data[DATA_STORE] = store
+    async_register_websocket(hass)
+    await async_register_frontend(hass)
     return True
 
 

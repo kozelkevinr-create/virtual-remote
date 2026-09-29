@@ -8,17 +8,21 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import ServiceValidationError
 import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.storage import Store
+from homeassistant.util.hass_dict import HassKey
 
 from .const import (
     DEFAULT_COLUMNS,
     DEFAULT_GAP,
     DEFAULT_ICON,
+    DOMAIN,
     STORAGE_KEY,
     STORAGE_MINOR_VERSION,
     STORAGE_VERSION,
+    signal_remote_updated,
 )
 
 
@@ -110,8 +114,16 @@ REMOTE_SCHEMA = vol.Schema(
 )
 
 
-class RemoteNotFoundError(HomeAssistantError):
+class RemoteNotFoundError(ServiceValidationError):
     """Raised when a remote id is not in the store."""
+
+    def __init__(self, remote_id: str) -> None:
+        super().__init__(
+            f"Unknown remote: {remote_id}",
+            translation_domain=DOMAIN,
+            translation_key="unknown_remote",
+            translation_placeholders={"remote_id": remote_id},
+        )
 
 
 class _VersionedStore(Store[dict[str, Any]]):
@@ -131,6 +143,7 @@ class RemoteStore:
     """Load, validate and persist remote definitions."""
 
     def __init__(self, hass: HomeAssistant) -> None:
+        self._hass = hass
         self._store = _VersionedStore(
             hass,
             STORAGE_VERSION,
@@ -153,12 +166,12 @@ class RemoteStore:
         try:
             return copy.deepcopy(self._remotes[remote_id])
         except KeyError:
-            raise RemoteNotFoundError(f"Unknown remote: {remote_id}") from None
+            raise RemoteNotFoundError(remote_id) from None
 
     def get_button(self, remote_id: str, button_id: str) -> dict[str, Any] | None:
         remote = self._remotes.get(remote_id)
         if remote is None:
-            raise RemoteNotFoundError(f"Unknown remote: {remote_id}")
+            raise RemoteNotFoundError(remote_id)
         for button in remote["buttons"]:
             if button["id"] == button_id:
                 return copy.deepcopy(button)
@@ -169,6 +182,7 @@ class RemoteStore:
         validated = REMOTE_SCHEMA(remote)
         self._remotes[validated["id"]] = validated
         self._async_schedule_save()
+        async_dispatcher_send(self._hass, signal_remote_updated(validated["id"]))
         return copy.deepcopy(validated)
 
     def ensure(self, remote_id: str, name: str, icon: str) -> dict[str, Any]:
@@ -186,3 +200,6 @@ class RemoteStore:
     def delete(self, remote_id: str) -> None:
         if self._remotes.pop(remote_id, None) is not None:
             self._async_schedule_save()
+
+
+DATA_STORE: HassKey[RemoteStore] = HassKey(DOMAIN)
