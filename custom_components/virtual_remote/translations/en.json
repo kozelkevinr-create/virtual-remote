@@ -1,0 +1,50 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Create a virtual remote",
+        "description": "Creates a new, empty remote. Add buttons later from the dashboard card editor.",
+        "data": {
+          "name": "Name",
+          "icon": "Icon"
+        },
+        "data_description": {
+          "name": "The name also becomes the remote's permanent ID.",
+          "icon": "Shown on the remote entity and in the card picker."
+        }
+      }
+    },
+    "error": {
+      "invalid_name": "The name must contain at least one letter or number."
+    },
+    "abort": {
+      "already_configured": "A remote with this name already exists."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Remote options",
+        "description": "Rename the remote or change its icon. Its ID does not change.",
+        "data": {
+          "name": "Name",
+          "icon": "Icon"
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "unknown_command": {
+      "message": "This remote has no button with the ID {command}."
+    },
+    "no_power_button": {
+      "message": "Turning on or off needs a button with one of these IDs: {commands}."
+    },
+    "frontend_only_action": {
+      "message": "The {action} action on button {command} only works when pressed from the dashboard card."
+    },
+    "self_target": {
+      "message": "Button {command} targets this same remote, which would loop forever."
+    }
+  }
+}
