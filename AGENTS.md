@@ -4,8 +4,8 @@ Home Assistant custom integration (`custom_components/virtual_remote/`) plus a
 Lovelace card for building **virtual remotes** with a drag-and-drop editor.
 Mobile (the HA companion app) is the primary target, not an afterthought.
 
-The approved design and 8-step build order live in
-`~/.claude/plans/abundant-percolating-seal.md`. Read it before starting a new step.
+The approved design and 8-step build order live in the local plan notes.
+Read them before starting a new step.
 
 ## Architecture rules
 
